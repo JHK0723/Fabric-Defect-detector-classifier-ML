@@ -1,0 +1,15 @@
+# datasets are NOT stored in this repo (see README for the download links)
+*.zip
+datasets/
+external_downloads/
+review_dataset/
+classify_dataset/
+test_build/
+RAW_FABRID/
+Fabric Anomaly Recognition Dataset/
+# local junk
+__pycache__/
+*.pyc
+.venv/
+runs/
+.ipynb_checkpoints/
