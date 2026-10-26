@@ -72,7 +72,9 @@ def main():
         cls = names[k]
         if cls != "non_defective" and p >= a.conf:
             hits.append((cls, p, x, y))
-            draw.rectangle([x, y, x + WIN, y + WIN], outline=COLORS.get(cls, (255, 255, 0)), width=3)
+            color = COLORS.get(cls, (255, 255, 0))
+            draw.rectangle([x, y, x + WIN, y + WIN], outline=color, width=3)
+            draw.text((x + 6, y + 6), f"{cls} {p:.2f}", fill=color)
     print(f"{len(boxes)} windows scanned, {len(hits)} flagged as defects")
     for cls, p, x, y in sorted(hits, key=lambda t: -t[1]):
         print(f"  {cls:15s} p={p:.2f}  window at x={x}, y={y}")

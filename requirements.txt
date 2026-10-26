@@ -2,3 +2,8 @@ ultralytics>=8.4
 pillow
 numpy
 scipy
+opencv-python
+pandas
+pyyaml
+streamlit
+psutil

@@ -19,17 +19,40 @@ import numpy as np
 
 
 class FabricDetector:
-    def __init__(self, weights="models/fabric_defect.pt", conf=0.25, imgsz=640, device=None, half=True, to_gray=True, lighting_method=None):
+    def __init__(self, weights="models/fabric_classifier_best.pt", conf=0.25, imgsz=None, device=None, half=True, to_gray=True, lighting_method=None):
         import torch
         from ultralytics import YOLO
 
-        if not Path(str(weights)).exists() and not str(weights).startswith(("yolo", "http")):
+        resolved_weights = Path(str(weights))
+        repo_root = Path(__file__).resolve().parents[1]
+        if not resolved_weights.exists() and not str(weights).startswith(("yolo", "http")):
+            alt = repo_root / weights
+            if alt.exists():
+                resolved_weights = alt
+            elif str(weights) in ("models/fabric_defect.pt", "fabric_defect.pt", "models/fabric_classifier_best.pt"):
+                for cand in [
+                    repo_root / "models" / "fabric_classifier_best.pt",
+                    repo_root / "models" / "yolo11n_classifier_best.pt",
+                    Path("models/fabric_classifier_best.pt"),
+                    Path("models/yolo11n_classifier_best.pt"),
+                ]:
+                    if cand.exists():
+                        resolved_weights = cand
+                        break
+
+        if not resolved_weights.exists() and not str(weights).startswith(("yolo", "http")):
             raise FileNotFoundError(f"Model weights not found: {weights}")
-        self.model = YOLO(str(weights))
+
+        self.model = YOLO(str(resolved_weights))
         self.device = device if device is not None else (0 if torch.cuda.is_available() else "cpu")
         self.half = bool(half) and self.device != "cpu"
         self.conf = float(conf)
-        self.imgsz = int(imgsz)
+        if imgsz is not None:
+            self.imgsz = int(imgsz)
+        elif getattr(self.model, "task", None) == "classify":
+            self.imgsz = 224
+        else:
+            self.imgsz = 640
         self.to_gray = bool(to_gray)
         self.lighting_method = lighting_method
         self.names = self.model.names            # {0: "hole", 1: "stain", 2: "broken_thread", 3: "irregular_yarn"}
@@ -51,8 +74,15 @@ class FabricDetector:
 
     def detect(self, frame):
         """frame: BGR uint8 ndarray (OpenCV image). Returns list of detection dicts."""
-        r = self.model.predict(self._prep(frame), conf=self.conf, imgsz=self.imgsz, device=self.device,
-                               half=self.half, verbose=False)[0]
+        predict_kwargs = {
+            "conf": self.conf,
+            "imgsz": self.imgsz,
+            "device": self.device,
+            "verbose": False,
+        }
+        if self.half:
+            predict_kwargs["half"] = True
+        r = self.model.predict(self._prep(frame), **predict_kwargs)[0]
         out = []
         # Support classification models (YOLO11-cls, YOLOv8-cls)
         probs = getattr(r, "probs", None)

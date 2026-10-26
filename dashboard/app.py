@@ -157,11 +157,11 @@ with st.sidebar:
     )
     
     if "YOLO11n-cls" in model_choice:
-        weights_path = "runs/classify/runs/cls_yolo11n/weights/best.pt"
+        weights_path = "models/yolo11n_classifier_best.pt" if Path("models/yolo11n_classifier_best.pt").exists() else "runs/classify/runs/cls_yolo11n/weights/best.pt"
     elif "YOLO11s-cls" in model_choice:
-        weights_path = "runs/cls/weights/best.pt"
+        weights_path = "models/fabric_classifier_best.pt" if Path("models/fabric_classifier_best.pt").exists() else "runs/cls/weights/best.pt"
     elif "YOLOv8s-cls" in model_choice:
-        weights_path = "runs/classify/runs/cls_yolov8s/weights/best.pt"
+        weights_path = "models/cls_yolov8s_best.pt" if Path("models/cls_yolov8s_best.pt").exists() else "runs/classify/runs/cls_yolov8s/weights/best.pt"
     else:
         weights_path = st.text_input("Weights File", value="models/fabric_classifier_best.pt")
         

@@ -62,7 +62,7 @@ class DashboardRuntime:
         fabric_id: str = "Roll-1",
         fabric_length_m: Optional[float] = 10.0,
         source: str = "0",
-        weights: str = "runs/classify/runs/cls_yolo11n/weights/best.pt",
+        weights: str = "models/fabric_classifier_best.pt",
         mock_mode: bool = False,
         conf: float = 0.50,
         lighting: str = "clahe",
@@ -107,9 +107,10 @@ class DashboardRuntime:
                     actual_weights = weights
                     if not Path(actual_weights).exists():
                         fallbacks = [
+                            "models/fabric_classifier_best.pt",
+                            "models/yolo11n_classifier_best.pt",
                             "runs/classify/runs/cls_yolo11n/weights/best.pt",
                             "runs/cls/weights/best.pt",
-                            "models/fabric_classifier_best.pt",
                             "yolo11n-cls.pt"
                         ]
                         for fb in fallbacks:
