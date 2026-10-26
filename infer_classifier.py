@@ -18,8 +18,15 @@ WIN = 256
 COLORS = {"hole": (0, 255, 0), "stain": (255, 140, 0), "broken_thread": (255, 0, 0), "irregular_yarn": (255, 0, 255)}
 
 
-def load_gray(path):
-    return Image.open(path).convert("L").convert("RGB")
+def load_gray(path, lighting_method=None):
+    im = Image.open(path).convert("L")
+    if lighting_method:
+        import numpy as np
+        from vision.preprocessing import correct_lighting
+        arr = np.array(im)
+        corr = correct_lighting(arr, method=lighting_method, to_gray=False)
+        return Image.fromarray(corr).convert("RGB")
+    return im.convert("RGB")
 
 
 def main():
@@ -29,13 +36,15 @@ def main():
     ap.add_argument("--stride", type=int, default=128)
     ap.add_argument("--conf", type=float, default=0.6, help="minimum probability for a window to count as a defect")
     ap.add_argument("--patch", action="store_true", help="input is a single 256x256 patch")
+    ap.add_argument("--lighting", choices=["clahe", "illumination_norm", "combined", "gamma"], default=None,
+                    help="apply lighting/illumination correction before inference")
     ap.add_argument("--save", help="write an annotated copy of the image here")
     a = ap.parse_args()
 
     from ultralytics import YOLO
     model = YOLO(a.weights)
     names = model.names
-    im = load_gray(a.image)
+    im = load_gray(a.image, lighting_method=a.lighting)
 
     if a.patch:
         r = model.predict(im, imgsz=224, verbose=False)[0]

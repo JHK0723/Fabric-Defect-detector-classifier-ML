@@ -1,5 +1,20 @@
-# datasets are NOT stored in this repo (see README for the download links)
+# =============================================================================
+# Git Ignore for Fabric Defect Detection & Classification ML
+# =============================================================================
+
+# --- Image and Dataset Files (DO NOT COMMIT) ---
+*.jpg
+*.jpeg
+*.png
+*.bmp
+*.webp
+*.tiff
+*.gif
 *.zip
+*.tar
+*.tar.gz
+data/raw/
+data/built/
 datasets/
 external_downloads/
 review_dataset/
@@ -7,9 +22,43 @@ classify_dataset/
 test_build/
 RAW_FABRID/
 Fabric Anomaly Recognition Dataset/
-# local junk
-__pycache__/
-*.pyc
-.venv/
+
+# --- Model Weights & Checkpoints ---
+# Ignore raw downloaded weights and runs directory
 runs/
+*.pt
+*.onnx
+*.engine
+# Keep only designated production models in models/
+!models/fabric_classifier_best.pt
+!models/yolo11n_classifier_best.pt
+
+# --- Runtime Logs, DBs & Snapshots ---
+logs/snapshots/
+logs/*.db
+logs/*.sqlite3
+logs/*.db-journal
+logs/*.csv
+
+# --- Python & Environment Artifacts ---
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+env/
+ENV/
+*.egg-info/
+dist/
+build/
+.pytest_cache/
 .ipynb_checkpoints/
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# --- System Artifacts ---
+Thumbs.db
+Desktop.ini
+.DS_Store

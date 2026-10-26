@@ -1,0 +1,5 @@
+Model          | Description                      | Params   | Top-1 Acc  | Top-5 Acc  | Latency   | Size    
+-------------------------------------------------------------------------------------------------------------
+YOLO11s-cls    | YOLO11 Small (Current Baseline)  | 5.45M    | 88.89%     | 100.00%    | 2.17 ms   | 10.5 MB 
+YOLO11n-cls    | YOLO11 Nano (Ultra-lightweight Edge) | 1.54M    | 89.96%     | 100.00%    | 1.58 ms   | 3.0 MB  
+YOLOv8s-cls    | YOLOv8 Small (Prior Generation Benchmark) | 5.09M    | 87.63%     | 100.00%    | 1.54 ms   | 9.8 MB  

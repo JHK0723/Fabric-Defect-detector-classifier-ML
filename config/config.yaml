@@ -1,0 +1,41 @@
+camera:
+  source: 0            # webcam index of the phone (find with test_camera.py --probe),
+                       # or a URL like "http://192.168.43.1:8080/video", or a video file path
+  width: 1280
+  height: 720
+  fps: 30
+  backend: auto        # auto | dshow | msmf   (Windows webcam backends)
+  loop_file: true      # loop video files (for testing without the phone)
+
+roi: null              # [x1, y1, x2, y2] as fractions of the frame, e.g. [0.10, 0.05, 0.90, 0.95]
+
+preprocessing:
+  lighting_correction: true      # whether to apply illumination/contrast normalization
+  method: "clahe"                # clahe | illumination_norm | combined | gamma
+  clip_limit: 2.0                # CLAHE contrast clipping threshold
+  tile_grid_size: [8, 8]         # CLAHE grid divisions
+  blur_kernel_size: 51           # Kernel size for background illumination estimation
+  target_mean: 128               # Target mean brightness for normalization
+  to_gray: true                  # Output 3-channel grayscale for YOLO model
+
+model:
+  weights: models/fabric_classifier_best.pt
+  imgsz: 224           # 224 for classifier, 640 for detector
+  conf: 0.25           # raw model threshold (low on purpose); real decisions are in tracker
+  half: false          # set true on CUDA GPU
+
+tracker:               # tune with Member 1's threshold_sweep results
+  min_confidence: 0.50
+  confirm_confidence: 0.70
+  confirm_frames: 3
+  max_missed: 10
+  iou_threshold: 0.20
+  max_center_dist: 0.15
+
+logging:
+  db_path: logs/inspection.db
+  snapshot_dir: logs/snapshots
+
+alerts:
+  beep: true
+  banner_seconds: 3

@@ -27,9 +27,28 @@ WIN = 256                                 # patch size for the classifier
 GRAY = True                               # train on grayscale (3-channel) images: removes the colour cue that separates the sources
 
 
-def load_rgb(path):
+def load_rgb(path, lighting=None):
     im = Image.open(path).convert("RGB")
+    if lighting:
+        import cv2
+        arr = np.array(im)
+        gray = cv2.cvtColor(arr, cv2.COLOR_RGB2GRAY)
+        if lighting == "clahe":
+            clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8))
+            res = clahe.apply(gray)
+        elif lighting == "illumination_norm":
+            blur = cv2.GaussianBlur(gray, (51, 51), 0)
+            res = cv2.divide(gray, blur, scale=128)
+        elif lighting == "combined":
+            blur = cv2.GaussianBlur(gray, (51, 51), 0)
+            flat = cv2.divide(gray, blur, scale=128)
+            clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8))
+            res = clahe.apply(flat)
+        else:
+            res = gray
+        return Image.fromarray(res).convert("RGB")
     return im.convert("L").convert("RGB") if GRAY else im
+
 
 
 def split_for_group(group, seed=42):
@@ -88,7 +107,7 @@ def collect(bd_root, tilda_root, pack_path):
     return items
 
 
-def write_detector(items, out):
+def write_detector(items, out, lighting=None):
     det = os.path.join(out, "det")
     shutil.rmtree(det, ignore_errors=True)
     for sp in ("train", "val", "test"):
@@ -96,7 +115,7 @@ def write_detector(items, out):
     tests = defaultdict(list)
     for it in items:
         dst = f"{det}/images/{it['split']}/{it['name']}.jpg"
-        load_rgb(it["path"]).save(dst, quality=95)
+        load_rgb(it["path"], lighting=lighting).save(dst, quality=95)
         with open(f"{det}/labels/{it['split']}/{it['name']}.txt", "w") as f:
             for c, p in it["boxes"]:
                 f.write(f"{c} " + " ".join(f"{v:.6f}" for v in p) + "\n")
@@ -119,7 +138,7 @@ def aabb(poly, W, H):
     return min(xs) * W, min(ys) * H, max(xs) * W, max(ys) * H
 
 
-def write_classifier(items, out, seed=0, max_defect_per_img=3, clean_per_img=2, clean_frac=0.25):
+def write_classifier(items, out, seed=0, max_defect_per_img=3, clean_per_img=2, clean_frac=0.25, lighting=None):
     rnd = random.Random(seed)
     cls_dir = os.path.join(out, "cls")
     shutil.rmtree(cls_dir, ignore_errors=True)
@@ -133,7 +152,7 @@ def write_classifier(items, out, seed=0, max_defect_per_img=3, clean_per_img=2, 
         rows.append((f"{sp}/{label}/{name}.jpg", src, label, sp))
 
     for it in items:
-        im = load_rgb(it["path"])
+        im = load_rgb(it["path"], lighting=lighting)
         W, H = im.size
         if min(W, H) < WIN:
             continue
@@ -182,13 +201,13 @@ def write_classifier(items, out, seed=0, max_defect_per_img=3, clean_per_img=2, 
     print("by source:", {s: {k: cs[(s, k)] for k in CLASSES + ["non_defective"] if cs[(s, k)]} for s in ("own", "tilda")})
 
 
-def build(bd_root, tilda_root, pack_path, out, gray=True):
+def build(bd_root, tilda_root, pack_path, out, gray=True, lighting=None):
     global GRAY
     GRAY = bool(gray)
     os.makedirs(out, exist_ok=True)
     items = collect(bd_root, tilda_root, pack_path)
-    write_detector(items, out)
-    write_classifier(items, out)
+    write_detector(items, out, lighting=lighting)
+    write_classifier(items, out, lighting=lighting)
     with open(os.path.join(out, "manifest.csv"), "w", newline="") as f:
         w = csv.writer(f); w.writerow(["name", "source", "split", "classes"])
         for it in items:
@@ -198,4 +217,4 @@ def build(bd_root, tilda_root, pack_path, out, gray=True):
 
 if __name__ == "__main__":
     import sys
-    build(*sys.argv[1:5])
+    build(*sys.argv[1:5])

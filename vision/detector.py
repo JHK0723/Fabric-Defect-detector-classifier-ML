@@ -19,7 +19,7 @@ import numpy as np
 
 
 class FabricDetector:
-    def __init__(self, weights="models/fabric_defect.pt", conf=0.25, imgsz=640, device=None, half=True, to_gray=True):
+    def __init__(self, weights="models/fabric_defect.pt", conf=0.25, imgsz=640, device=None, half=True, to_gray=True, lighting_method=None):
         import torch
         from ultralytics import YOLO
 
@@ -31,7 +31,9 @@ class FabricDetector:
         self.conf = float(conf)
         self.imgsz = int(imgsz)
         self.to_gray = bool(to_gray)
+        self.lighting_method = lighting_method
         self.names = self.model.names            # {0: "hole", 1: "stain", 2: "broken_thread", 3: "irregular_yarn"}
+        self.last_probs = {}
 
     def warmup(self, n=3):
         dummy = np.full((self.imgsz, self.imgsz, 3), 127, np.uint8)
@@ -39,6 +41,9 @@ class FabricDetector:
             self.detect(dummy)
 
     def _prep(self, frame):
+        if self.lighting_method:
+            from .preprocessing import correct_lighting
+            return correct_lighting(frame, method=self.lighting_method, to_gray=self.to_gray)
         if not self.to_gray:
             return frame
         g = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
@@ -49,6 +54,24 @@ class FabricDetector:
         r = self.model.predict(self._prep(frame), conf=self.conf, imgsz=self.imgsz, device=self.device,
                                half=self.half, verbose=False)[0]
         out = []
+        # Support classification models (YOLO11-cls, YOLOv8-cls)
+        probs = getattr(r, "probs", None)
+        if probs is not None:
+            self.last_probs = {self.names[i]: float(probs.data[i]) for i in range(len(self.names))}
+            top1_id = int(probs.top1)
+            top1_conf = float(probs.top1conf)
+            top1_name = self.names[top1_id]
+            if top1_name != "non_defective" and top1_conf >= self.conf:
+                h, w = frame.shape[:2]
+                margin_x, margin_y = int(w * 0.1), int(h * 0.1)
+                out.append({
+                    "class": top1_name,
+                    "class_id": top1_id,
+                    "confidence": top1_conf,
+                    "bbox": [margin_x, margin_y, w - margin_x, h - margin_y]
+                })
+            return out
+
         obb = getattr(r, "obb", None)
         if obb is not None and len(obb) > 0:                                  # oriented-box model
             env = obb.xyxy.cpu().numpy()
